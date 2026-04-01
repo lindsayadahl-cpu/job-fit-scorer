@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Fit Scorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #0066cc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0052a3;
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .results {
+            display: none;
+            border-top: 2px solid #f0f0f0;
+            padding-top: 32px;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .score-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .score-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .score-high { background: #10b981; }
+        .score-medium { background: #f59e0b; }
+        .score-low { background: #ef4444; }
+        .score-fail { background: #991b1b; }
+
+        .score-details h2 {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .score-category {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .verdict {
+            background: #f9fafb;
+            border-left: 4px solid #0066cc;
+            padding: 16px;
+            margin-bottom: 24px;
+            border-radius: 4px;
+        }
+
+        .verdict h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        .verdict p {
+            color: #4b5563;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+
+        .criteria-list {
+            list-style: none;
+        }
+
+        .criteria-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .criteria-pass {
+            background: #ecfdf5;
+            border-left: 3px solid #10b981;
+        }
+
+        .criteria-fail {
+            background: #fef2f2;
+            border-left: 3px solid #ef4444;
+        }
+
+        .criteria-partial {
+            background: #fffbeb;
+            border-left: 3px solid #f59e0b;
+        }
+
+        .criteria-icon {
+            font-size: 18px;
+            margin-top: 2px;
+        }
+
+        .criteria-content {
+            flex: 1;
+        }
+
+        .criteria-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .criteria-note {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0066cc;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+            padding: 16px;
+            border-radius: 4px;
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Job Fit Scorer</h1>
+        <p class="subtitle">Paste a job description below to evaluate fit against your current needs and constraints</p>
+
+        <div class="input-group">
+            <label for="jobDescription">Job Description</label>
+            <textarea 
+                id="jobDescription" 
+                placeholder="Paste the full job description here, including title, responsibilities, requirements, compensation if listed, and any other details..."
+            ></textarea>
+        </div>
+
+        <div class="input-group">
+            <label for="resume">Your Resume (optional but recommended)</label>
+            <textarea 
+                id="resume" 
+                placeholder="Paste your current resume text here to get tailored recommendations on what to adjust for this specific role..."
+            ></textarea>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" id="scoreBtn">Score This Role</button>
+            <button class="btn-secondary" id="clearBtn">Clear</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Analyzing job fit...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="results" class="results">
+            <!-- Results will be inserted here -->
+        </div>
+    </div>
+
+    <script>
+        const jobDescriptionInput = document.getElementById('jobDescription');
+        const resumeInput = document.getElementById('resume');
+        const scoreBtn = document.getElementById('scoreBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const results = document.getElementById('results');
+
+        scoreBtn.addEventListener('click', scoreJob);
+        clearBtn.addEventListener('click', clearForm);
+
+        async function scoreJob() {
+            const jobText = jobDescriptionInput.value.trim();
+            const resumeText = resumeInput.value.trim();
+            
+            if (!jobText) {
+                showError('Please paste a job description first');
+                return;
+            }
+
+            hideError();
+            results.classList.remove('show');
+            loading.style.display = 'block';
+            scoreBtn.disabled = true;
+
+            try {
+                let prompt = `You are evaluating a job posting for Lindsay, who is actively job searching. Analyze this job description and score it against her criteria.`;
+                
+                if (resumeText) {
+                    prompt += ` Also analyze her resume fit for this specific role and provide tailored recommendations.`;
+                }
+
+                const response = await fetch("https://api.anthropic.com/v1/messages", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        model: "claude-sonnet-4-20250514",
+                        max_tokens: 4000,
+                        messages: [
+                            { 
+                                role: "user", 
+                                content: prompt + `
+
+LINDSAY'S CONTEXT:
+- 18 years experience spanning org development, change management, transformation consulting, instructional design, internal comms, program management
+- Most recent: Amazon IC contract, Lead Instructional Designer at Workweek (22mo), ongoing part-time PM at Mission Collaborative
+- Based in San Diego, actively job searching with defined financial runway
+- Two lanes: (1) contract PM/L&D/IC roles for immediate runway (high volume, minimal customization), (2) transformation/OD consulting for longer-term play
+- Core value prop: "I design and run programs that translate strategy into execution in ambiguous, fast-moving organizations"
+
+MUST-HAVES (DEALBREAKERS):
+- Remote OR based in San Diego, Los Angeles, or Washington DC
+- Meets minimum comp: $50/hr contract OR $130k+ annual
+- Doesn't require people management
+
+HIGH-WEIGHT FACTORS (8-10 points each):
+- Uses cross-functional skillset (not just one narrow slice)
+- Senior IC role where she translates strategy into execution
+- Reasonable timeline/urgency (needs income, not 6-month process)
+
+MEDIUM-WEIGHT FACTORS (4-7 points each):
+- Ambiguous/fast-moving environment where she designs programs from scratch
+- Growth stage or transformation context (vs. steady-state maintenance)
+- Compensation well above minimums (not just barely clearing bar)
+- Values alignment (progressive, anti-toxic positivity, systems-thinking friendly)
+
+LOWER-WEIGHT FACTORS (1-3 points each):
+- Industry interest/learning potential
+- Title accuracy (avoiding overqualified screening)
+- Contract vs FTE preference based on lane
+
+JOB DESCRIPTION:
+${jobText}
+${resumeText ? `\n\nLINDSAY'S CURRENT RESUME:\n${resumeText}` : ''}
+
+Respond ONLY with a valid JSON object (no markdown, no preamble) in this exact structure:
+{
+  "passesMinimums": true/false,
+  "score": 0-100,
+  "category": "Strong Fit" | "Bridge Role" | "Weak Fit" | "Hard Pass",
+  "verdict": "2-3 sentence plain language summary of whether to apply and what lane this fits",
+  "dealbreakers": [
+    {"criterion": "string", "passes": true/false, "note": "string"}
+  ],
+  "highWeight": [
+    {"criterion": "string", "score": 0-10, "note": "string"}
+  ],
+  "mediumWeight": [
+    {"criterion": "string", "score": 0-7, "note": "string"}
+  ],
+  "lowWeight": [
+    {"criterion": "string", "score": 0-3, "note": "string"}
+  ],
+  "yellowFlags": ["string array of concerns to address in application"],
+  "applicationAdvice": "1-2 sentences on how much energy to invest"${resumeText ? `,
+  "resumeFit": {
+    "overallAlignment": "Strong" | "Moderate" | "Weak",
+    "keywordGaps": ["missing keywords/skills from JD that should be added"],
+    "experienceHighlights": ["which bullets or roles to emphasize"],
+    "bulletAdjustments": ["specific bullets to add, modify, or reframe"],
+    "positioningAdvice": "how to frame your background for this specific role",
+    "redFlags": ["anything on resume that might hurt you for this role"]
+  }` : ''}
+}`
+                            }
+                        ]
+                    })
+                });
+
+                const data = await response.json();
+                const content = data.content[0].text;
+                
+                // Parse the JSON response
+                let analysis;
+                try {
+                    analysis = JSON.parse(content);
+                } catch (e) {
+                    // Try to extract JSON from markdown code blocks if present
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        analysis = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error('Could not parse response');
+                    }
+                }
+
+                displayResults(analysis);
+            } catch (err) {
+                console.error('Error:', err);
+                showError('Something went wrong analyzing this job. Please try again.');
+            } finally {
+                loading.style.display = 'none';
+                scoreBtn.disabled = false;
+            }
+        }
+
+        function displayResults(analysis) {
+            const scoreClass = analysis.score >= 75 ? 'score-high' : 
+                              analysis.score >= 50 ? 'score-medium' : 
+                              analysis.score >= 25 ? 'score-low' : 'score-fail';
+
+            let html = `
+                <div class="score-header">
+                    <div class="score-circle ${scoreClass}">${analysis.score}</div>
+                    <div class="score-details">
+                        <h2>${analysis.category}</h2>
+                        <div class="score-category">${analysis.passesMinimums ? 'Meets minimums' : 'Fails minimums'}</div>
+                    </div>
+                </div>
+
+                <div class="verdict">
+                    <h3>Bottom Line</h3>
+                    <p>${analysis.verdict}</p>
+                    ${analysis.applicationAdvice ? `<p style="margin-top: 8px; font-style: italic;">${analysis.applicationAdvice}</p>` : ''}
+                </div>
+            `;
+
+            // Dealbreakers
+            if (analysis.dealbreakers && analysis.dealbreakers.length > 0) {
+                html += `<div class="section">
+                    <h3>Must-Haves</h3>
+                    <ul class="criteria-list">`;
+                
+                analysis.dealbreakers.forEach(item => {
+                    const cssClass = item.passes ? 'criteria-pass' : 'criteria-fail';
+                    const icon = item.passes ? '✓' : '✗';
+                    html += `
+                        <li class="criteria-item ${cssClass}">
+                            <span class="criteria-icon">${icon}</span>
+                            <div class="criteria-content">
+                                <div class="criteria-title">${item.criterion}</div>
+                                <div class="criteria-note">${item.note}</div>
+                            </div>
+                        </li>
+                    `;
+                });
+
+                html += `</ul></div>`;
+            }
+
+            // High Weight
+            if (analysis.highWeight && analysis.highWeight.length > 0) {
+                html += `<div class="section">
+                    <h3>High-Weight Factors</h3>
+                    <ul class="criteria-list">`;
+                
+                analysis.highWeight.forEach(item => {
+                    const cssClass = item.score >= 7 ? 'criteria-pass' : 
+                                   item.score >= 4 ? 'criteria-partial' : 'criteria-fail';
+                    html += `
+                        <li class="criteria-item ${cssClass}">
+                            <span class="criteria-icon">${item.score}/10</span>
+                            <div class="criteria-content">
+                                <div class="criteria-title">${item.criterion}</div>
+                                <div class="criteria-note">${item.note}</div>
+                            </div>
+                        </li>
+                    `;
+                });
+
+                html += `</ul></div>`;
+            }
+
+            // Medium Weight
+            if (analysis.mediumWeight && analysis.mediumWeight.length > 0) {
+                html += `<div class="section">
+                    <h3>Medium-Weight Factors</h3>
+                    <ul class="criteria-list">`;
+                
+                analysis.mediumWeight.forEach(item => {
+                    const cssClass = item.score >= 5 ? 'criteria-pass' : 
+                                   item.score >= 3 ? 'criteria-partial' : 'criteria-fail';
+                    html += `
+                        <li class="criteria-item ${cssClass}">
+                            <span class="criteria-icon">${item.score}/7</span>
+                            <div class="criteria-content">
+                                <div class="criteria-title">${item.criterion}</div>
+                                <div class="criteria-note">${item.note}</div>
+                            </div>
+                        </li>
+                    `;
+                });
+
+                html += `</ul></div>`;
+            }
+
+            // Yellow Flags
+            if (analysis.yellowFlags && analysis.yellowFlags.length > 0) {
+                html += `<div class="section">
+                    <h3>Yellow Flags to Address</h3>
+                    <ul class="criteria-list">`;
+                
+                analysis.yellowFlags.forEach(flag => {
+                    html += `
+                        <li class="criteria-item criteria-partial">
+                            <span class="criteria-icon">⚠</span>
+                            <div class="criteria-content">
+                                <div class="criteria-note">${flag}</div>
+                            </div>
+                        </li>
+                    `;
+                });
+
+                html += `</ul></div>`;
+            }
+
+            // Resume Fit Section
+            if (analysis.resumeFit) {
+                const rf = analysis.resumeFit;
+                const alignmentClass = rf.overallAlignment === 'Strong' ? 'criteria-pass' : 
+                                      rf.overallAlignment === 'Moderate' ? 'criteria-partial' : 'criteria-fail';
+                
+                html += `<div class="section" style="border-top: 2px solid #f0f0f0; padding-top: 24px; margin-top: 24px;">
+                    <h3>Resume Fit & Tailoring Recommendations</h3>
+                    
+                    <div class="criteria-item ${alignmentClass}" style="margin-bottom: 16px;">
+                        <span class="criteria-icon">📄</span>
+                        <div class="criteria-content">
+                            <div class="criteria-title">Overall Resume Alignment: ${rf.overallAlignment}</div>
+                            <div class="criteria-note">${rf.positioningAdvice}</div>
+                        </div>
+                    </div>`;
+
+                if (rf.experienceHighlights && rf.experienceHighlights.length > 0) {
+                    html += `<div style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">✓ Experience to Emphasize</div>
+                        <ul style="margin-left: 20px; color: #059669;">`;
+                    rf.experienceHighlights.forEach(item => {
+                        html += `<li style="margin-bottom: 4px; font-size: 13px;">${item}</li>`;
+                    });
+                    html += `</ul></div>`;
+                }
+
+                if (rf.keywordGaps && rf.keywordGaps.length > 0) {
+                    html += `<div style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">⚠ Keywords/Skills to Add</div>
+                        <ul style="margin-left: 20px; color: #d97706;">`;
+                    rf.keywordGaps.forEach(item => {
+                        html += `<li style="margin-bottom: 4px; font-size: 13px;">${item}</li>`;
+                    });
+                    html += `</ul></div>`;
+                }
+
+                if (rf.bulletAdjustments && rf.bulletAdjustments.length > 0) {
+                    html += `<div style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">✏️ Bullet Adjustments</div>
+                        <ul style="margin-left: 20px; color: #0066cc;">`;
+                    rf.bulletAdjustments.forEach(item => {
+                        html += `<li style="margin-bottom: 4px; font-size: 13px;">${item}</li>`;
+                    });
+                    html += `</ul></div>`;
+                }
+
+                if (rf.redFlags && rf.redFlags.length > 0) {
+                    html += `<div style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">🚩 Potential Red Flags</div>
+                        <ul style="margin-left: 20px; color: #dc2626;">`;
+                    rf.redFlags.forEach(item => {
+                        html += `<li style="margin-bottom: 4px; font-size: 13px;">${item}</li>`;
+                    });
+                    html += `</ul></div>`;
+                }
+
+                html += `</div>`;
+            }
+
+            results.innerHTML = html;
+            results.classList.add('show');
+        }
+
+        function clearForm() {
+            jobDescriptionInput.value = '';
+            resumeInput.value = '';
+            results.classList.remove('show');
+            hideError();
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        function hideError() {
+            error.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
