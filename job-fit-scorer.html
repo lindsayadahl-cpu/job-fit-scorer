@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -265,6 +266,17 @@
         <p class="subtitle">Paste a job description below to evaluate fit against your current needs and constraints</p>
 
         <div class="input-group">
+            <label for="apiKey">Anthropic API Key <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size: 12px; font-weight: normal;">(Get one here)</a></label>
+            <input 
+                type="password" 
+                id="apiKey" 
+                placeholder="sk-ant-..." 
+                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 14px;"
+            />
+            <p style="font-size: 12px; color: #666; margin-top: 4px;">Your API key is only used in your browser and never saved or shared. You'll need to add credit ($5 minimum) to your Anthropic account.</p>
+        </div>
+
+        <div class="input-group">
             <label for="jobDescription">Job Description</label>
             <textarea 
                 id="jobDescription" 
@@ -298,6 +310,7 @@
     </div>
 
     <script>
+        const apiKeyInput = document.getElementById('apiKey');
         const jobDescriptionInput = document.getElementById('jobDescription');
         const resumeInput = document.getElementById('resume');
         const scoreBtn = document.getElementById('scoreBtn');
@@ -310,11 +323,22 @@
         clearBtn.addEventListener('click', clearForm);
 
         async function scoreJob() {
+            const apiKey = apiKeyInput.value.trim();
             const jobText = jobDescriptionInput.value.trim();
             const resumeText = resumeInput.value.trim();
             
+            if (!apiKey) {
+                showError('Please enter your Anthropic API key first');
+                return;
+            }
+
+            if (!apiKey.startsWith('sk-ant-')) {
+                showError('Invalid API key format. Should start with sk-ant-');
+                return;
+            }
+
             if (!jobText) {
-                showError('Please paste a job description first');
+                showError('Please paste a job description');
                 return;
             }
 
@@ -334,6 +358,8 @@
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
+                        "x-api-key": apiKey,
+                        "anthropic-version": "2023-06-01"
                     },
                     body: JSON.stringify({
                         model: "claude-sonnet-4-20250514",
@@ -429,7 +455,15 @@ Respond ONLY with a valid JSON object (no markdown, no preamble) in this exact s
                 displayResults(analysis);
             } catch (err) {
                 console.error('Error:', err);
-                showError('Something went wrong analyzing this job. Please try again.');
+                
+                // Check if it's an API key issue
+                if (err.message && err.message.includes('401')) {
+                    showError('Invalid API key. Please check your key and try again.');
+                } else if (err.message && err.message.includes('429')) {
+                    showError('Rate limit exceeded. Please wait a moment and try again.');
+                } else {
+                    showError('Something went wrong analyzing this job. Please try again.');
+                }
             } finally {
                 loading.style.display = 'none';
                 scoreBtn.disabled = false;
